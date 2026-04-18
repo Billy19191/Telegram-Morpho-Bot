@@ -9,7 +9,7 @@ type VaultEntity struct {
 	TotalAssetUsd float64 `json:"totalAssetUsd"`
 	Liquidity     float64 `json:"liquidity"`
 	MyAssetUsd    float64 `json:"myAssetUsd"`
-	AvgApy        float64 `json:"avgApy"`
+	NetApy        float64 `json:"netApy"`
 	SharedInVault float64 `json:"sharedInVault"`
 }
 
@@ -22,6 +22,6 @@ type VaultModel struct {
 	TotalAssetUsd float64 `json:"totalAssetUsd"`
 	Liquidity     float64 `json:"liquidity"`
 	MyAssetUsd    float64 `json:"myAssetUsd"`
-	AvgApy        float64 `json:"avgApy"`
+	NetApy        float64 `json:"netApy"`
 	SharedInVault float64 `json:"sharedInVault"`
 }

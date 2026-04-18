@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/Billy19191/Telegram-Morpho-Bot/model"
 	"github.com/Billy19191/Telegram-Morpho-Bot/service"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
@@ -65,22 +66,31 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 
 	riskReport := service.EvaluateVaultRisk(result.Data[0])
 
+	reasonLine := ""
+	if riskReport.OverallStatus != model.StatusSafe {
+		reasonLine = fmt.Sprintf("🔥 Reason: %s\n", riskReport.Reason)
+	}
+
 	messageTemplate := fmt.Sprintf(
 		"⚡ Overall Status: %s\n"+
+			"%s"+
 			"----------------------\n"+
 			"🏦 Vault Name: %s\n"+
-			"📈 Avg APY: %s%%\n"+
+			"📈 Current APY: %s%%\n"+
 			"💰 My Asset USD: $%s\n"+
 			"----------------------\n"+
 			"🏛️ Total Asset USD: $%s\n"+
 			"💧 Liquidity: %s\n"+
+			"📊 Utilization: %s%%\n"+
 			"🤝 Shared In Vault: %s%%\n",
 		riskReport.OverallStatus,
+		reasonLine,
 		result.Data[0].VaultName,
-		formatNumberWithSeparator(result.Data[0].AvgApy),
+		formatNumberWithSeparator(result.Data[0].NetApy),
 		formatNumberWithSeparator(result.Data[0].MyAssetUsd),
 		formatNumberWithSeparator(result.Data[0].TotalAssetUsd),
 		formatNumberWithSeparator(result.Data[0].Liquidity),
+		riskReport.Metrics[3].Value,
 		formatNumberWithSeparator(result.Data[0].SharedInVault),
 	)
 
