@@ -37,6 +37,9 @@ func (s *MorphoService) GetVaultPositions() (*model.MorphoResponseEntity, error)
 	}
 	defer response.Body.Close()
 
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("failed to fetch vault positions: unexpected status code %d", response.StatusCode)
+	}
 	var result model.MorphoResponseEntity
 	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)

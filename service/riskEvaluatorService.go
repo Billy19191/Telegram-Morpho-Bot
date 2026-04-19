@@ -20,12 +20,20 @@ func EvaluateVaultRisk(vault model.VaultEntity) model.RiskReport {
 	for _, m := range metrics {
 		if m.Status == model.StatusCritical {
 			overall = model.StatusCritical
-			reason = m.Reason
-			break
+			if reason != "" {
+				reason += "\n"
+			}
+			reason += m.Reason
+			continue
 		}
 		if m.Status == model.StatusMonitor {
-			overall = model.StatusMonitor
-			reason += m.Reason + "\n"
+			if overall != model.StatusCritical {
+				overall = model.StatusMonitor
+			}
+			if reason != "" {
+				reason += "\n"
+			}
+			reason += m.Reason
 		}
 	}
 

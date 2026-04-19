@@ -4,7 +4,7 @@ type RiskStatus string
 
 const (
 	StatusSafe     RiskStatus = "🟢 Safe"
-	StatusMonitor  RiskStatus = "🟡 Keep Monitor"
+	StatusMonitor  RiskStatus = "🟡 Monitor"
 	StatusCritical RiskStatus = "🔴 Critical"
 )
 
