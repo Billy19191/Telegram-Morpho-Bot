@@ -3,16 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
+	"strconv"
+	"time"
 
 	"github.com/Billy19191/Telegram-Morpho-Bot/model"
 	"github.com/Billy19191/Telegram-Morpho-Bot/service"
+	"github.com/Billy19191/Telegram-Morpho-Bot/util"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 	"github.com/joho/godotenv"
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
 )
 
 var morphoService *service.MorphoService
@@ -29,6 +31,11 @@ func main() {
 		getEnvKey("CHAIN_ID", ""),
 	)
 
+	chatID, err := strconv.ParseInt(getEnvKey("TG_CHAT_ID", "0"), 10, 64)
+	if err != nil || chatID == 0 {
+		panic("TG_CHAT_ID is required and must be a valid number")
+	}
+
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
@@ -42,6 +49,9 @@ func main() {
 		panic(err)
 	}
 
+	go startCronMonitor(ctx, tgBot, chatID)
+
+	log.Println("🤖 Bot started. Cron monitor running every 5 minutes.")
 	tgBot.Start(ctx)
 }
 
@@ -65,13 +75,75 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 	}
 
 	riskReport := service.EvaluateVaultRisk(result.Data[0])
+	msg := formatVaultMessage(result.Data[0], riskReport)
 
+	b.SendMessage(ctx, &bot.SendMessageParams{
+		ChatID: update.Message.Chat.ID,
+		Text:   msg,
+	})
+}
+
+// startCronMonitor checks vault positions every 5 minutes.
+// - Critical status → sends alert immediately
+// - Normal status → sends routine report every 8 hours
+func startCronMonitor(ctx context.Context, b *bot.Bot, chatID int64) {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	lastRoutineReport := time.Now()
+
+	checkAndNotify(ctx, b, chatID, &lastRoutineReport)
+
+	for {
+		select {
+		case <-ctx.Done():
+			log.Println("🛑 Cron monitor stopped.")
+			return
+		case <-ticker.C:
+			checkAndNotify(ctx, b, chatID, &lastRoutineReport)
+		}
+	}
+}
+
+func checkAndNotify(ctx context.Context, b *bot.Bot, chatID int64, lastRoutineReport *time.Time) {
+	result, err := morphoService.GetVaultPositions()
+	if err != nil {
+		log.Printf("❌ Cron check failed: %v", err)
+		return
+	}
+
+	riskReport := service.EvaluateVaultRisk(result.Data[0])
+	log.Printf("📋 Cron check — Status: %s", riskReport.OverallStatus)
+
+	if riskReport.OverallStatus == model.StatusCritical {
+		msg := "🚨 CRITICAL ALERT 🚨\n" + formatVaultMessage(result.Data[0], riskReport)
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   msg,
+		})
+		*lastRoutineReport = time.Now()
+		log.Println("🚨 Critical alert sent!")
+		return
+	}
+
+	if time.Since(*lastRoutineReport) >= 8*time.Hour {
+		msg := "📊 Routine Monitor Report\n\n" + formatVaultMessage(result.Data[0], riskReport)
+		b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   msg,
+		})
+		*lastRoutineReport = time.Now()
+		log.Println("📊 Routine report sent!")
+	}
+}
+
+func formatVaultMessage(vault model.VaultEntity, riskReport model.RiskReport) string {
 	reasonLine := ""
 	if riskReport.OverallStatus != model.StatusSafe {
 		reasonLine = fmt.Sprintf("🔥 Reason: %s\n", riskReport.Reason)
 	}
 
-	messageTemplate := fmt.Sprintf(
+	return fmt.Sprintf(
 		"⚡ Overall Status: %s\n"+
 			"%s"+
 			"----------------------\n"+
@@ -85,22 +157,12 @@ func handler(ctx context.Context, b *bot.Bot, update *models.Update) {
 			"🤝 Shared In Vault: %s%%\n",
 		riskReport.OverallStatus,
 		reasonLine,
-		result.Data[0].VaultName,
-		formatNumberWithSeparator(result.Data[0].NetApy),
-		formatNumberWithSeparator(result.Data[0].MyAssetUsd),
-		formatNumberWithSeparator(result.Data[0].TotalAssetUsd),
-		formatNumberWithSeparator(result.Data[0].Liquidity),
+		vault.VaultName,
+		util.FormatNumberWithSeparator(vault.NetApy),
+		util.FormatNumberWithSeparator(vault.MyAssetUsd),
+		util.FormatNumberWithSeparator(vault.TotalAssetUsd),
+		util.FormatNumberWithSeparator(vault.Liquidity),
 		riskReport.Metrics[3].Value,
-		formatNumberWithSeparator(result.Data[0].SharedInVault),
+		util.FormatNumberWithSeparator(vault.SharedInVault),
 	)
-
-	b.SendMessage(ctx, &bot.SendMessageParams{
-		ChatID: update.Message.Chat.ID,
-		Text:   messageTemplate,
-	})
-}
-
-func formatNumberWithSeparator(number float64) string {
-	p := message.NewPrinter(language.English)
-	return p.Sprintf("%.2f", number)
 }
