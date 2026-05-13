@@ -1,0 +1,19 @@
+services:
+  telegram-morpho-bot:
+    build: .
+    ports:
+      - '3000:3000'
+    networks:
+      - default
+      - shared-net
+    environment:
+      - TG_BOT_TOKEN=${TG_BOT_TOKEN}
+      - BASE_URL=${BASE_URL}
+      - WALLET_ADDRESS=${WALLET_ADDRESS}
+      - CHAIN_ID=${CHAIN_ID}
+      - TG_CHAT_ID=${TG_CHAT_ID}
+
+networks:
+  shared-net:
+    external: true
+    name: billy-shared-network
