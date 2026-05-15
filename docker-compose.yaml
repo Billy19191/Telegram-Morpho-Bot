@@ -15,4 +15,5 @@ services:
 
 networks:
   shared-net:
+    external: true
     name: billy-shared-network
