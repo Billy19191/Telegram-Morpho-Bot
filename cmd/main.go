@@ -14,15 +14,15 @@ import (
 	"github.com/Billy19191/Telegram-Morpho-Bot/util"
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
-	"github.com/joho/godotenv"
+	// "github.com/joho/godotenv"
 )
 
 var morphoService *service.MorphoService
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		panic("ENV not found")
-	}
+	// if err := godotenv.Load(); err != nil {
+	// 	panic("ENV not found")
+	// }
 
 	tgBotToken := getEnvKey("TG_BOT_TOKEN", "")
 	morphoService = service.NewMorphoService(
