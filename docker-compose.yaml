@@ -2,7 +2,7 @@ services:
   telegram-morpho-bot:
     build: .
     ports:
-      - '3000:3000'
+      - '${PORT}:${PORT}'
     networks:
       - default
       - shared-net
