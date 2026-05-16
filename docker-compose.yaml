@@ -12,6 +12,17 @@ services:
       - WALLET_ADDRESS=${WALLET_ADDRESS}
       - CHAIN_ID=${CHAIN_ID}
       - TG_CHAT_ID=${TG_CHAT_ID}
+      - PORT=${PORT}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - default
 
 networks:
   shared-net:

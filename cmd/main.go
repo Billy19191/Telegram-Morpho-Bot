@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Billy19191/Telegram-Morpho-Bot/internal/config"
 	"github.com/Billy19191/Telegram-Morpho-Bot/model"
 	"github.com/Billy19191/Telegram-Morpho-Bot/service"
 	"github.com/Billy19191/Telegram-Morpho-Bot/util"
@@ -23,6 +24,11 @@ func main() {
 	// if err := godotenv.Load(); err != nil {
 	// 	panic("ENV not found")
 	// }
+
+	_, err := config.LoadConfig()
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load config: %v", err))
+	}
 
 	tgBotToken := getEnvKey("TG_BOT_TOKEN", "")
 	morphoService = service.NewMorphoService(
